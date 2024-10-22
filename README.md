@@ -1,5 +1,11 @@
 # Profit Prophets Stock Trading Platform
 
+***edits to be made***
+Changes needed to be made for Functional Document PRIOR TO IT3: 
+    - how to download to a computer
+    - terminal changes to get it to function based on the device (MACOS/Windows)
+    
+    
 
 ## **Description**
 This application is an easy to use stock trading software that automates the buying and selling of stocks - Amazon, Apple, Google, META, Microstoft, Tesla.  
