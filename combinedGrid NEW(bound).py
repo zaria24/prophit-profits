@@ -272,7 +272,10 @@ def orderingGUI():
 
         sell_btn = Button(root, text=f'Sell {stock}', bd='5', command=lambda s=stock: create_order(s, qty=1, side='sell'), font=('TkDefaultFont', 14))
         sell_btn.grid(column=2, row=2 + i, padx=5, pady=5)
-
+  
+        # Button for Bound Trading
+        bound_trade_btn = tk.Button(root, text='BOUND TRADE', bd='5', command=bound_trading_screen, font=('TkDefaultFont', 18))
+        bound_trade_btn.grid(column=0, row=10, padx=10, pady=10)
     root.mainloop()
 
 
