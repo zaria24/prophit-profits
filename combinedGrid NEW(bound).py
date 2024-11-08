@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 import tkinter.ttk as ttk
 import time
 import threading
+import sys
 
 BASE_URL = 'https://paper-api.alpaca.markets'
 ACCOUNT_URL = f'{BASE_URL}/v2/account'
@@ -14,6 +15,8 @@ ORDERS_URL = f'{BASE_URL}/v2/orders'
 ALL_ORDERS = f'{ORDERS_URL}?status=all'
 CLOSED_ORDERS = f'{ORDERS_URL}?status=closed'
 NEW_ORDERS = f'{ORDERS_URL}?status=filled'
+amountstock = 100000
+amountStockString = "The final amount is:"
 
 # Stock trade price URLs
 STOCK_URLS = {
@@ -47,6 +50,8 @@ def get_tradePrice(stock):
     response = json.loads(r.content)
     return response['trade']['p']
 
+def update_cash_label():
+    cash_label.config(text="Available Cash: $" + str(amountstock))
 
 def create_order(symbol, qty, side, order_type='market', time_in_force='day'):
     data = {
@@ -59,7 +64,6 @@ def create_order(symbol, qty, side, order_type='market', time_in_force='day'):
     r = requests.post(ORDERS_URL, json=data, headers=HEADERS)
     response = json.loads(r.content)
     print(response)
-
 
 def get_orders():
     r = requests.get(ALL_ORDERS, headers=HEADERS)
@@ -78,6 +82,7 @@ def activate_bot():
         schedule_sell_before_market_close()
     else:
         print("Market is closed. Cannot activate bot.")
+        
 
 
 def deactivate_bot():
@@ -86,6 +91,9 @@ def deactivate_bot():
     else:
         print("Market is closed. Bot is already deactivated.")
 
+    sys.exit()
+
+   
 
 def buy_stocks():
     stocks_to_buy = ['AAPL', 'TSLA', 'AMZN', 'GOOG', 'META', 'MSFT']
@@ -236,7 +244,7 @@ def orderingGUI():
     root.geometry('{}x{}'.format(root.winfo_screenwidth(), root.winfo_screenheight()))
     root.title('Profit Prophets - Ordering Stocks')
 
-    cash_label = tk.Label(root, text="Available Cash: $10000", font=('TkDefaultFont', 18, 'bold'))
+    cash_label = tk.Label(root, text="Available Cash: $" + str(amountstock), font=('TkDefaultFont', 18, 'bold'))
     cash_label.grid(column=0, row=0, padx=10, pady=10)
 
     stock_label = tk.Label(root, text="Stock Prices", font=('TkDefaultFont', 18, 'bold'))
@@ -279,7 +287,7 @@ def orderingGUI():
 welcome = tk.Tk()
 welcome.title('Profit Prophets - Alpaca Trading API')
 welcome.state('zoomed')
-image = Image.open('Profit Prophets.jpg')
+image = Image.open(r'C:\Users\zaria.ascue\Desktop\Profit Prophets.jpg')
 image = ImageTk.PhotoImage(image)
 
 # Set up frames for layout
@@ -290,7 +298,7 @@ left_frame.pack(side=LEFT)
 
 # Load logo
 try:
-    image = Image.open('Profit Prophets.jpg')
+    image = Image.open(r'C:\Users\zaria.ascue\Desktop\Profit Prophets.jpg')
     image = ImageTk.PhotoImage(image)
     image_label = tk.Label(top_frame, image=image)
     image_label.pack(pady=20)
