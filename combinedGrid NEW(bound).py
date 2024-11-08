@@ -54,16 +54,25 @@ def update_cash_label():
     cash_label.config(text="Available Cash: $" + str(amountstock))
 
 def create_order(symbol, qty, side, order_type='market', time_in_force='day'):
-    data = {
-        'symbol': symbol,
-        'qty': qty,
-        'side': side,
-        'type': order_type,
-        'time_in_force': time_in_force
-    }
-    r = requests.post(ORDERS_URL, json=data, headers=HEADERS)
-    response = json.loads(r.content)
-    print(response)
+    global amountstock
+
+    # Get the current price of the stock
+    stock_price = get_tradePrice(STOCK_URLS[symbol])
+
+    if side == 'buy':
+        total_cost = stock_price * qty
+        if amountstock >= total_cost:  # Check if there's enough cash to make the purchase
+            amountstock -= total_cost  # Deduct the cost from available cash
+            update_cash_label()  # Update the displayed cash
+            print(f"Bought {qty} of {symbol} at ${stock_price} each. Remaining cash: ${amountstock}")
+        else:
+            print("Not enough cash to complete the purchase!")
+    
+    elif side == 'sell':
+        total_sale = stock_price * qty
+        amountstock += total_sale  # Add the proceeds from the sale to available cash
+        update_cash_label()  # Update the displayed cash after selling
+        print(f"Sold {qty} of {symbol} at ${stock_price} each. New cash balance: ${amountstock}")
 
 def get_orders():
     r = requests.get(ALL_ORDERS, headers=HEADERS)
@@ -239,11 +248,12 @@ def bound_trading_screen():
 
 
 def orderingGUI():
-    global root
+    global root, cash_label
     root = tk.Tk()
     root.geometry('{}x{}'.format(root.winfo_screenwidth(), root.winfo_screenheight()))
     root.title('Profit Prophets - Ordering Stocks')
 
+    # Label to show available cash
     cash_label = tk.Label(root, text="Available Cash: $" + str(amountstock), font=('TkDefaultFont', 18, 'bold'))
     cash_label.grid(column=0, row=0, padx=10, pady=10)
 
@@ -260,12 +270,8 @@ def orderingGUI():
         buy_btn = Button(root, text=f'Buy {stock}', bd='5', command=lambda s=stock: create_order(s, qty=1, side='buy'), font=('TkDefaultFont', 14))
         buy_btn.grid(column=1, row=2 + i, padx=5, pady=5)
 
-        sell_btn = Button(root, text=f'Sell {stock}', bd='5', command=lambda s=stock: create_order(s, qty=1, side='sell'), font=('TkDefaultFont', 14))  #command=showLabel (uncomment when func show label is uncommented in line 263)
+        sell_btn = Button(root, text=f'Sell {stock}', bd='5', command=lambda s=stock: create_order(s, qty=1, side='sell'), font=('TkDefaultFont', 14))
         sell_btn.grid(column=2, row=2 + i, padx=5, pady=5)
-
-    # Button for Bound Trading
-    bound_trade_btn = tk.Button(root, text='BOUND TRADE', bd='5', command=bound_trading_screen, font=('TkDefaultFont', 18))
-    bound_trade_btn.grid(column=0, row=10, padx=10, pady=10)
 
     root.mainloop()
 
