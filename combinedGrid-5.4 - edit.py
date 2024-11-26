@@ -11,6 +11,7 @@ import sys
 import config
 from tkinter import simpledialog #for user input
 
+
 BASE_URL = 'https://paper-api.alpaca.markets'
 ACCOUNT_URL = f'{BASE_URL}/v2/account'
 ORDERS_URL = f'{BASE_URL}/v2/orders'
@@ -20,7 +21,6 @@ NEW_ORDERS = f'{ORDERS_URL}?status=filled'
 
 amountstock = 100000
 amountStockString = "The final amount is:"
-#global new_value
 global stock
 
 
@@ -234,10 +234,10 @@ def range_trading():
 
     
 
-def show_results_table(results):
-    # Placeholder for a function to show results in a GUI or console
-    for result in results:
-        print(result)
+# def show_results_table(results):
+#     # Placeholder for a function to show results in a GUI or console
+#     for result in results:
+#         print(result)
 
 
 def mainWindow():
@@ -249,8 +249,8 @@ def mainWindow():
             password = password_entry.get()
         
             # Fake credentials for demonstration purposes
-            fake_username = "1"
-            fake_password = "1"
+            fake_username = "csc_user"
+            fake_password = "csc_password" 
 
             if username == fake_username and password == fake_password:
                 login_window.destroy()
@@ -339,25 +339,30 @@ def range_trading_screen():
             price_label.grid(row=idx, column=1, padx=10, pady=5)
 
             # Low column
-            low_range = tk.Label(range_trade_window, text=f"${low_range}", font=('Georgia', 12), bg = "bisque", cursor="hand2")
-            low_range.grid(row=idx, column=2, padx=10, pady=5)
+            low_range_label = tk.Label(range_trade_window, text=f"${low_range}", font=('Georgia', 12), bg = "bisque")
+            low_range_label.grid(row=idx, column=2, padx=10, pady=5)
 
             low_entry = tk.Entry(range_trade_window, font=("Georgia", 14))
             low_entry.grid_remove()  # Hide the entry widget initially
 
-            low_range.bind("<Button-1>", lambda event, entry=low_entry, label=low_range: start_edit(event, entry, label))
-
+            #low_range.bind("<Button-1>", lambda event, entry=low_entry, label=low_range, stock=stock: start_edit(event, entry, label, stock, 'low'))
+            low_range_label.bind("<Button-1>", lambda event, entry=low_entry, label=low_range_label, stock=stock: start_edit(event, entry, label, range_trade_window, stock, 'low'))
+            
             # High column
-            high_range = tk.Label(range_trade_window, text=f"${high_range}", font=('Georgia', 12), bg = "bisque")
-            high_range.grid(row=idx, column=3, padx=10, pady=5)
+            high_range_label = tk.Label(range_trade_window, text=f"${high_range}", font=('Georgia', 12), bg = "bisque")
+            high_range_label.grid(row=idx, column=3, padx=10, pady=5)
             
             high_entry = tk.Entry(range_trade_window, font=("Georgia", 14))
             high_entry.grid_remove()  # Hide the entry widget initially
 
-            high_range.bind("<Button-1>", lambda event, entry=high_entry, label=high_range, stock=stock: start_edit(event, entry, label, stock, 'high'))
+            #high_range.bind("<Button-1>", lambda event, entry=high_entry, label=high_range, stock=stock: start_edit(event, entry, label, stock, 'high'))
+            # Pass variables explicitly to lambda
+            high_range_label.bind("<Button-1>", lambda event, entry=high_entry, label=high_range_label, stock=stock: start_edit(event, entry, label, range_trade_window, stock, 'high'))
+            
 
         
-def start_edit(event, entry, label, stock, range_type):
+def start_edit(event, entry, label, window, stock, range_type):
+        
         entry_var = tk.StringVar(value=label.cget("text"))
         entry.config(textvariable=entry_var)
         entry.grid(row=label.grid_info()['row'], column=label.grid_info()['column'])  # Show the entry widget
@@ -365,8 +370,7 @@ def start_edit(event, entry, label, stock, range_type):
         entry.focus_set()  # Focus the entry for editing
 
         
-        def finish_edit(entry, label, stock, range_type):
-            #global finish_edit(entry, label, window)
+        def finish_edit(entry, label, window, stock, range_type):
             #global PRICE_RANGE
             global new_value, transfer_value
             new_value = entry.get()  # Get the new value
@@ -379,7 +383,7 @@ def start_edit(event, entry, label, stock, range_type):
                     PRICE_RANGE[stock]['low'] = float(new_value)  # Update low range for the stock
                 elif range_type == "high":
                     PRICE_RANGE[stock]['high'] = float(new_value)  # Update high range for the stock
-
+                #update_results_table()
             
             
             transfer_value = new_value
@@ -388,69 +392,170 @@ def start_edit(event, entry, label, stock, range_type):
             label.grid()  # Show the label again
             #update_results_table()
             #window.focus_set()
-            #update_results_table()
+            update_results_table()
             return new_value
-        
-            
+        entry.bind("<Return>", lambda event: (finish_edit(entry, label, range_results_screen, stock, range_type)))
+        #update_results_table()
+       
+def refresh_canvas_chart(results):
+    global chart_canvas
 
-        entry.bind("<Return>", lambda event: (finish_edit(entry, label, stock, range_type)))
+    # Clear the canvas
+    chart_canvas.delete("all")
+
+    # Dimensions for the table
+    row_height = 30
+    col_widths = [100, 150, 150, 150, 150]  # Widths for Stock, Current Price, Low, High, Action
+    x_start = 10  # Starting x-coordinate
+    y_start = 10  # Starting y-coordinate
+
+    # Draw headers
+    headers = ["Stock", "Current Price", "Low Range", "High Range", "Action"]
+    for col_index, header in enumerate(headers):
+        chart_canvas.create_text(
+            x_start + sum(col_widths[:col_index]) + col_widths[col_index] // 2,
+            y_start,
+            text=header,
+            font=("Arial", 12, "bold"),
+            anchor="center"
+        )
+
+    # Horizontal line for headers
+    chart_canvas.create_line(
+        x_start, y_start + 15,
+        x_start + sum(col_widths), y_start + 15,
+        fill="black", width=2
+    )
+
+    # Draw rows for each stock
+    for row_index, (stock, current_price, low_range, high_range, action) in enumerate(results):
+        y_pos = y_start + (row_index + 1) * row_height
+
+        # Stock name
+        chart_canvas.create_text(
+            x_start + col_widths[0] // 2,
+            y_pos,
+            text=stock,
+            font=("Arial", 10),
+            anchor="center"
+        )
+
+        # Current price
+        chart_canvas.create_text(
+            x_start + col_widths[0] + col_widths[1] // 2,
+            y_pos,
+            text=f"${current_price:.2f}" if current_price != "N/A" else "N/A",
+            font=("Arial", 10),
+            anchor="center"
+        )
+
+        # Low range
+        chart_canvas.create_text(
+            x_start + sum(col_widths[:2]) + col_widths[2] // 2,
+            y_pos,
+            text=f"${low_range:.2f}",
+            font=("Arial", 10),
+            anchor="center"
+        )
+
+        # High range
+        chart_canvas.create_text(
+            x_start + sum(col_widths[:3]) + col_widths[3] // 2,
+            y_pos,
+            text=f"${high_range:.2f}",
+            font=("Arial", 10),
+            anchor="center"
+        )
+
+        # Action
+        chart_canvas.create_text(
+            x_start + sum(col_widths[:4]) + col_widths[4] // 2,
+            y_pos,
+            text=action,
+            font=("Arial", 10),
+            anchor="center"
+        )
+
+    # Adjust the canvas scroll region to fit the content
+    chart_canvas.config(scrollregion=chart_canvas.bbox("all"))
 
 
 
 def update_results_table():
 
     global PRICE_RANGE
-    PRICE_RANGE = {
-        #'stock_price_label': {'low':low_range_label, 'high': high_range_label},
-        'AAPL': {'low': aapl_low, 'high': aapl_high},
-        'AMZN': {'low': amzn_low, 'high': amzn_high},
-        'MSFT': {'low': msft_low, 'high': msft_high},
-        'META': {'low': meta_low, 'high': meta_high},
-        'GOOG': {'low': goog_low, 'high': goog_high},
-    }
 
-    
-
-    results = [] #intializes list
-    #current_price = finish_edit(entry, label, range_trade_window)
-
+    # Calculate updated results
+    results = []
     for stock, price_range in PRICE_RANGE.items():
-        #current price of stock
         current_price = get_tradePrice(STOCK_URLS[stock])
-        price_range['low'] = float(new_value)
-        #current_price = float(new_value)
-
         if current_price is None:
-            print("None")
-            results.append((stock, "N/A", price_range['low'], price_range['high'], "No action")) #appends list
+            results.append((stock, "N/A", price_range['low'], price_range['high'], "No action"))
             continue
 
         if current_price <= price_range['low']:
-            create_order(stock, qty=1, side='buy')
-            print("bought")
-            results.append((stock, current_price, price_range['low'], price_range['high'], "Bought")) #appends list
-
+            results.append((stock, current_price, price_range['low'], price_range['high'], "Buy"))
         elif current_price >= price_range['high']:
-            create_order(stock, qty=1, side='sell')
-            print("sold")
-            results.append((stock, current_price, price_range['low'], price_range['high'], "Sold")) #appends list
+            results.append((stock, current_price, price_range['low'], price_range['high'], "Sell"))
         else:
-            print("None")
-            results.append((stock, current_price, price_range['low'], price_range['high'], "No action")) #appends list
+            results.append((stock, current_price, price_range['low'], price_range['high'], "Hold"))
 
-    print("Range Trading Results:", results) #prints list
-    return results #ensures there is a results table printed
+    # Refresh the chart with the new results
+    refresh_canvas_chart(results)
+
+    return results
+
+    # for stock, price_range in PRICE_RANGE.items():
+    #     #current price of stock
+    #     current_price = get_tradePrice(STOCK_URLS[stock])
+    #     #price_range['low'] = float(new_value)
+    #     #current_price = float(new_value)
+
+                
+    #     if current_price is None:
+    #         print("None")
+    #         results.append((stock, "N/A", price_range['low'], price_range['high'], "No action")) #appends list
+    #         continue
+
+    #     if current_price <= price_range['low']:
+    #         create_order(stock, qty=1, side='buy')
+    #         print("bought")
+    #         results.append((stock, current_price, price_range['low'], price_range['high'], "Bought")) #appends list
+
+    #     elif current_price >= price_range['high']:
+    #         create_order(stock, qty=1, side='sell')
+    #         print("sold")
+    #         results.append((stock, current_price, price_range['low'], price_range['high'], "Sold")) #appends list
+    #     else:
+    #         print("None")
+    #         results.append((stock, current_price, price_range['low'], price_range['high'], "No action")) #appends list
+
+    # print("Range Trading Results:", results) #prints list
+    # return results #ensures there is a results table printed
 
 
 
 
 # Adding a function to show the Range Results Screen
 def range_results_screen(): 
-    # Create a new window for the Range Trading
+    global range_window, chart_canvas
+
+    # Create the results window
     range_window = tk.Toplevel(root)
     range_window.title('Range Trading Results')
     range_window.geometry('800x600')
-    range_window.configure(bg = "bisque")
+    range_window.configure(bg="bisque")
+
+    # Create the Canvas for the chart
+    chart_canvas = tk.Canvas(range_window, width=750, height=400, bg="white")
+    chart_canvas.pack(pady=20)
+
+    # Back button
+    back_btn = tk.Button(range_window, text="BACK", command=range_window.destroy, font=('Georgia', 18, 'bold'))
+    back_btn.pack(pady=10)
+
+    # Update the chart initially
+    update_results_table()
 
     # Create a label for the screen title
     range_label = tk.Label(range_window, text="Range Trading Results", font=('Georgia', 18, 'bold'), bg = "bisque")
@@ -459,10 +564,6 @@ def range_results_screen():
     # Back button to ordering gui
     back_btn = tk.Button(range_window, text='BACK', bd='5', command = lambda: [range_window.destroy()], font=('Georgia', 18))
     back_btn.grid(column=0, row=10, padx=10, pady=100)
-
-    # Call range trading and capture the results
-    #results = update_results_table()
-    #print(results)
 
     headers = ["Stock", "Current Price", "Low Range", "High Range", "Action"]
     for col, header in enumerate(headers):
